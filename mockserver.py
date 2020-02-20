@@ -65,6 +65,8 @@ class TcpServer:
                 print >>sys.stderr, 'received ', data
                 if (acf_description in data):
                     conn.send('Boeing 737-800')
+                elif ('sub ' in data):
+                  pass
                 else:
                     conn.send(self.getScreen())
             except socket.timeout:
@@ -75,10 +77,11 @@ class TcpServer:
 
     def getScreen(self):
         result = ''
-        for k, v in posInit.items():
+        screen = random.choice(screens)
+        for k, v in screen.items():
             result += 'ub ' + k + ' ' + \
                 b64encode(v.decode('ascii')).encode('ascii') + '\n'
-        print >>sys.stderr, result
+        print >>sys.stderr, screen
         return result
 
 server = TcpServer()

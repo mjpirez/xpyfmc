@@ -3,6 +3,9 @@ import socket
 import struct
 from time import sleep
 from base64 import b64decode
+from xpydef import acf_description, cdu_datarefs
+
+cduRefs = cdu_datarefs.copy()
 
 EXTPLANE_PORT = 51000
 
@@ -80,31 +83,36 @@ class XPlaneTcpClient:
             break
       return data
 
-   def subscribeForCDUDisplay(self, cdu_refs):
-      for k, v in cdu_refs.items():
+   def subscribeForCDUDisplay(self):
+      global cduRefs
+      for k, v in cduRefs.items():
          print >>sys.stderr, 'subscribing to ', k
          self.client.send('sub ' + k + b'\n')
          sleep(.150)
 
-   def updateCDUDataRefs(self, cdu_refs):
+   def updateCDUDataRefs(self, name):
+      print 'thread %s initializing... ' %name
+      global cduRefs
       while self.update:
          try:
             data = self.client.recv(1024)
             tokens = data.split('\n')
-            if len(tokens) > 1:
+            if len(tokens) > 2:
                for token in tokens:
-                  update = token.split()
-                  if 'ub' == update[0]:
-                     cdu_refs[update[1]] = self.decode(update[2])
+                  self.updateInfo(token)
             else:
-               update = tokens[0].split()
-               if "ub" == update[0]:
-                  cdu_refs[update[1]] = self.decode(update[2])
-            #print >>sys.stderr, tokens
-         except IndexError:
-            pass
+               self.updateInfo(tokens[0])
          except socket.timeout:
             pass
 
    def decode(self, msg):
       return b64decode(msg.encode('ascii')).decode('ascii')
+
+   def updateInfo(self, token):
+      global cduRefs
+      try:
+         lineTokens = token.split()
+         if 'ub' == lineTokens[0]:
+            cduRefs[lineTokens[1]] = self.decode(lineTokens[2])
+      except IndexError:
+         pass
